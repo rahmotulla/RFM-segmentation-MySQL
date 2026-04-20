@@ -1,0 +1,84 @@
+with rfm_value as(
+select customername,
+datediff((select max(str_to_date(orderdate, '%d/%m/%y')) from rfm_table), max(str_to_date(orderdate, '%d/%m/%y'))) as recency_in_days,
+count(distinct ordernumber) as frequency, round(sum(sales),2) monetary_value
+from rfm_table
+group by customername),
+
+rfm_c as(
+select *,
+ntile(5) over(order by recency_in_days desc) as r_value,
+ntile(5) over(order by frequency) as f_value,
+ntile(5) over(order by monetary_value) as m_value
+from rfm_value),
+
+rfm_combination as(
+select *, 
+r_value+f_value+m_value as total_rfm_score,
+concat_ws("",r_value, f_value, m_value) as rfm_combination
+from rfm_c)
+
+select *,
+CASE
+    WHEN RFM_combination IN (555,545,544,455,454,445,444) THEN "Champion"
+
+    WHEN RFM_combination IN (
+        543,542,541,535,534,533,532,531,
+        453,452,451,443,442,441,435,434,433,432,431,
+        353,352,351,345,344,343,342,341
+    ) THEN "Loyal Customers"
+
+    WHEN RFM_combination IN (
+        554,553,552,551,
+        454,453,452,
+        354,353,352,
+        254,253,252
+    ) THEN "Potential Loyalist"
+
+    WHEN RFM_combination IN (
+        511,512,513,
+        521,522,
+        411,412,
+        311,421
+    ) THEN "New Customers"
+
+    WHEN RFM_combination IN (
+        525,524,523,
+        515,514,
+        425,424,423,
+        415,414,
+        325,324,323
+    ) THEN "Promising"
+
+    WHEN RFM_combination IN (
+        335,334,333,332,331,
+        235,234,233,232,231,
+        345,344,343,342,341
+    ) THEN "Need Attention"
+
+    WHEN RFM_combination IN (
+        315,314,313,312,311,
+        225,224,223,222,221,
+        215,214,213,212,211
+    ) THEN "About to Sleep"
+
+    WHEN RFM_combination IN (
+        155,154,153,152,151,
+        145,144,143,142,141,
+        255,254,253,252,251,
+        245,244,243,242,241
+    ) THEN "At Risk"
+
+
+    WHEN RFM_combination IN (
+        135,134,133,132,131,
+        225,224,223,222,221,
+        215,214,213,212,211
+    ) THEN "Hibernating"
+
+    ELSE "Lost"
+END as types_of_customers
+from rfm_combination;
+
+
+
